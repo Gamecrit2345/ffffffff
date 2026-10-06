@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Council Decision System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 30px;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        textarea {
+            width: 100%;
+            height: 90px;
+            padding: 12px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            resize: vertical;
+        }
+        button {
+            background-color: #007bff;
+            color: #ffffff;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 12px;
+            width: 100%;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .agents-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 25px;
+        }
+        .agent-card {
+            background: #f8f9fa;
+            border: 1px solid #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .agent-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #2d3748;
+        }
+        .final-decision {
+            margin-top: 25px;
+            background: #eef6fc;
+            border-left: 5px solid #007bff;
+            padding: 20px;
+            border-radius: 6px;
+        }
+        .loading {
+            color: #718096;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🤖 AI Council Decision System</h2>
+    <p>Enter your question or scenario for the three AI agents to analyze:</p>
+    
+    <textarea id="promptInput" placeholder="Example: Should I buy a laptop or a desktop for programming and gaming?"></textarea>
+    <button onclick="startDecisionProcess()">Ask AI Council</button>
+
+    <!-- The 3 AI Outputs -->
+    <div class="agents-grid">
+        <div class="agent-card">
+            <div class="agent-title">💡 Agent 1: Optimist</div>
+            <div id="ai1-output" class="loading">Waiting for prompt...</div>
+        </div>
+        <div class="agent-card">
+            <div class="agent-title">⚠️ Agent 2: Risk Analyst</div>
+            <div id="ai2-output" class="loading">Waiting for prompt...</div>
+        </div>
+        <div class="agent-card">
+            <div class="agent-title">📊 Agent 3: Practical Analyst</div>
+            <div id="ai3-output" class="loading">Waiting for prompt...</div>
+        </div>
+    </div>
+
+    <!-- Final AI Consensus -->
+    <div class="final-decision">
+        <h3>🏆 Final Decision & Consensus</h3>
+        <div id="final-output" class="loading">The final decision will appear here after the 3 AI agents analyze your prompt...</div>
+    </div>
+</div>
+
+<script>
+    // Free AI fetch function using Pollinations REST endpoint
+    async function queryFreeAI(systemRole, userQuery) {
+        const fullPrompt = `${systemRole}\n\nUser Question: ${userQuery}`;
+        const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(fullPrompt)}`);
+        
+        if (!response.ok) {
+            throw new Error("Network response error.");
+        }
+        
+        return await response.text();
+    }
+
+    async function startDecisionProcess() {
+        const promptText = document.getElementById("promptInput").value.trim();
+        
+        if (!promptText) {
+            alert("Please enter a question or prompt first!");
+            return;
+        }
+
+        // Set UI loading status
+        document.getElementById("ai1-output").innerText = "Thinking...";
+        document.getElementById("ai2-output").innerText = "Thinking...";
+        document.getElementById("ai3-output").innerText = "Thinking...";
+        document.getElementById("final-output").innerText = "Evaluating responses from the 3 agents...";
+
+        try {
+            // Prompts para sa 3 magkakaibang AI perspective
+            const role1 = "You are an optimistic assistant. Highlight the positive opportunities and benefits for this scenario in 2-3 concise sentences:";
+            const role2 = "You are a pessimistic risk analyst. Highlight potential drawbacks, costs, and risks for this scenario in 2-3 concise sentences:";
+            const role3 = "You are a practical, data-driven analyst. Provide a realistic and balanced perspective in 2-3 concise sentences:";
+
+            // Sabay-sabay na tatawag sa 3 AI agents
+            const [res1, res2, res3] = await Promise.all([
+                queryFreeAI(role1, promptText),
+                queryFreeAI(role2, promptText),
+                queryFreeAI(role3, promptText)
+            ]);
+
+            // Ipakita ang bawat sagot
+            document.getElementById("ai1-output").innerText = res1;
+            document.getElementById("ai2-output").innerText = res2;
+            document.getElementById("ai3-output").innerText = res3;
+
+            // Gagawin ang huling desisyon batay sa 3 opinyon
+            const judgeRole = "You are the Lead Judge of an AI decision board. Review the arguments below and provide the single best recommendation:";
+            const consensusInput = `Scenario: "${promptText}"\n\nOptimist View: ${res1}\n\nRisk Analyst View: ${res2}\n\nPractical View: ${res3}`;
+
+            const finalRecommendation = await queryFreeAI(judgeRole, consensusInput);
+            document.getElementById("final-output").innerText = finalRecommendation;
+
+        } catch (error) {
+            console.error(error);
+            document.getElementById("final-output").innerText = "Error fetching AI response. Please check your internet connection and try again.";
+        }
+    }
+</script>
+
+</body>
+</html>
